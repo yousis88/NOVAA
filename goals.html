@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101018">
+  <title>Daily goals — NOVAA</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/app.js" defer></script>
+</head>
+<body data-page="goals">
+  <div class="app-shell">
+    <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">N</span><span>NOVAA</span></a>
+    <div class="side-label">WORKSPACE</div>
+    <nav class="nav-links" aria-label="Main navigation">
+      <a class="nav-link" data-nav="overview" href="index.html"><span class="nav-icon">⌂</span><span>Overview</span></a>
+      <a class="nav-link" data-nav="tasks" href="tasks.html"><span class="nav-icon">☷</span><span>My tasks</span></a>
+      <a class="nav-link" data-nav="focus" href="focus.html"><span class="nav-icon">◷</span><span>Focus room</span></a>
+      <a class="nav-link" data-nav="goals" href="goals.html"><span class="nav-icon">✧</span><span>Daily goals</span></a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-note"><span class="note-spark">✦</span><p class="note-title">Small steps add up.</p><p class="note-copy">Make today count, one task at a time.</p></div>
+      <a class="settings-link" data-nav="settings" href="settings.html"><span>⚙</span> Settings</a>
+      <div class="profile-row"><div class="avatar">N</div><div><strong>Your workspace</strong><small>Personal dashboard</small></div></div>
+    </div>
+  </aside>
+    <main class="main-content">
+      <header class="topbar">
+        <div class="breadcrumb">Workspace <span>/</span> Daily goals</div>
+        <div class="topbar-right"><span class="status-dot"></span><span>Saved in this browser</span></div>
+      </header>
+      <div class="page-content">
+        <section class="page-heading"><div><p class="eyebrow">SMALL WINS, EVERY DAY</p><h1>Daily <span>goals.</span></h1><p class="welcome-copy">Build a day you can feel good about, one small action at a time.</p></div><div class="date-card"><span class="date-icon">✧</span><span id="goalsDate">Today</span></div></section>
+<section class="goals-layout">
+  <section class="panel">
+    <div class="panel-heading"><div><p class="eyebrow">TODAY'S CHECKLIST</p><h2>Your daily goals</h2></div><span class="goal-count" id="goalProgress">0 / 4</span></div>
+    <div class="goal-progress-track large"><div id="goalProgressBar"></div></div>
+    <p class="panel-description" id="goalSummary">You've got a fresh page today. Make it count.</p>
+    <div class="goal-list large-goal-list" id="goalList">
+      <label class="goal-item"><input type="checkbox" data-goal="plan"><span class="custom-check"></span><span>Plan my day</span></label>
+      <label class="goal-item"><input type="checkbox" data-goal="focus"><span class="custom-check"></span><span>Complete a focus session</span></label>
+      <label class="goal-item"><input type="checkbox" data-goal="learn"><span class="custom-check"></span><span>Learn something new</span></label>
+      <label class="goal-item"><input type="checkbox" data-goal="break"><span class="custom-check"></span><span>Take a proper break</span></label>
+    </div>
+  </section>
+  <aside class="panel goal-quote"><span class="quote-mark">“</span><h2>Progress, not perfection.</h2><p>Consistency is built through ordinary days and small promises you keep to yourself.</p><span class="quote-credit">A NOVAA reminder</span></aside>
+</section>
+      </div>
+      <footer class="footer"><span>NOVAA <span class="footer-dot">✦</span> Built for better days.</span><span>Your data stays in this browser.</span></footer>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
