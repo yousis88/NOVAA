@@ -199,4 +199,97 @@
   if($("#date"))$("#date").textContent=dateText;
   if($("#goalsDate"))$("#goalsDate").textContent=today.toLocaleDateString("en-US",{month:"long",day:"numeric"});
   renderTasksPage();renderDashboardTasks();updateGoals();updateTimer();updateStats();
+
+  // NOVAA Phase 1: Kanban, Calendar and Notes share the existing task store.
+  const NOTES_KEY="novaa_v3_notes";
+  let notes=read(NOTES_KEY,[]);
+  if(!Array.isArray(notes)) notes=[];
+  const saveNotes=()=>write(NOTES_KEY,notes);
+  function taskStatus(t){ return t.done ? "done" : (t.status==="progress" ? "progress" : "todo"); }
+  function renderKanban(){
+    if(!$("#todoList")) return;
+    const groups={todo:$("#todoList"),progress:$("#progressList"),done:$("#doneList")};
+    Object.values(groups).forEach(el=>el.replaceChildren());
+    const counts={todo:0,progress:0,done:0};
+    tasks.forEach(t=>{
+      const status=taskStatus(t); counts[status]++;
+      const card=document.createElement("article");card.className="kanban-card";
+      const name=document.createElement("strong");name.textContent=t.name;
+      const meta=document.createElement("div");meta.className="kanban-meta";
+      const priority=document.createElement("span");priority.className=`priority ${t.priority||"normal"}`;priority.textContent=t.priority||"normal";
+      meta.append(priority);
+      if(t.dueDate){const due=document.createElement("small");due.textContent="Due "+new Date(t.dueDate+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});meta.append(due);}
+      const select=document.createElement("select");select.className="kanban-status";select.setAttribute("aria-label","Change task status");
+      [["todo","To do"],["progress","In progress"],["done","Completed"]].forEach(([v,label])=>{const o=document.createElement("option");o.value=v;o.textContent=label;o.selected=v===status;select.append(o);});
+      select.addEventListener("change",()=>{t.status=select.value;t.done=select.value==="done";saveTasks();renderKanban();renderTasksPage();renderDashboardTasks();});
+      card.append(name,meta,select);groups[status].append(card);
+    });
+    [["todoCount",counts.todo],["progressCount",counts.progress],["doneCount",counts.done]].forEach(([id,n])=>$("#"+id).textContent=n);
+    $("#kanbanCount").textContent=`${tasks.length} tasks`;
+    Object.entries(groups).forEach(([status,el])=>{if(!el.children.length){const empty=document.createElement("div");empty.className="empty-state";empty.textContent="Nothing here yet.";el.append(empty);}});
+  }
+  if($("#kanbanForm")){
+    $("#kanbanForm").addEventListener("submit",e=>{
+      e.preventDefault();const name=$("#kanbanInput").value.trim();if(!name)return;
+      tasks.unshift({id:globalThis.crypto?.randomUUID?.()||String(Date.now()),name,priority:$("#kanbanPriority").value,done:false,status:"todo",dueDate:$("#kanbanDue").value||"",createdAt:Date.now()});
+      saveTasks();$("#kanbanInput").value="";$("#kanbanDue").value="";renderKanban();toast("Task added to your board.");
+    });
+    renderKanban();
+  }
+  let calendarCursor=new Date(today.getFullYear(),today.getMonth(),1);
+  let selectedCalendarDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  const dateKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  function renderCalendar(){
+    if(!$("#calendarDays"))return;
+    const year=calendarCursor.getFullYear(),month=calendarCursor.getMonth();
+    $("#calendarTitle").textContent=calendarCursor.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+    $("#calendarMonthLabel").textContent=calendarCursor.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+    const first=new Date(year,month,1),start=new Date(year,month,1-first.getDay());
+    const wrap=$("#calendarDays");wrap.replaceChildren();
+    for(let i=0;i<42;i++){
+      const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i),key=dateKey(d);
+      const cell=document.createElement("button");cell.type="button";cell.className="calendar-day"+(d.getMonth()!==month?" outside":"")+(key===dateKey(selectedCalendarDate)?" selected":"")+(key===dateKey(today)?" today":"");
+      const num=document.createElement("span");num.textContent=d.getDate();cell.append(num);
+      const n=tasks.filter(t=>t.dueDate===key).length;if(n){const dot=document.createElement("small");dot.textContent=`${n} task${n===1?"":"s"}`;cell.append(dot);}
+      cell.addEventListener("click",()=>{selectedCalendarDate=d;renderCalendar();renderAgenda();});wrap.append(cell);
+    }
+    renderAgenda();
+  }
+  function renderAgenda(){
+    if(!$("#calendarAgenda"))return;
+    const key=dateKey(selectedCalendarDate);$("#agendaTitle").textContent=selectedCalendarDate.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
+    const box=$("#calendarAgenda");box.replaceChildren();
+    const matches=tasks.filter(t=>t.dueDate===key);
+    if(!matches.length){const e=document.createElement("div");e.className="empty-state";e.textContent="No tasks scheduled for this day. Add a due date from the Kanban board.";box.append(e);}
+    matches.forEach(t=>box.append(renderTaskItem(t)));
+  }
+  if($("#calendarDays")){
+    $("#prevMonth").addEventListener("click",()=>{calendarCursor.setMonth(calendarCursor.getMonth()-1);renderCalendar();});
+    $("#nextMonth").addEventListener("click",()=>{calendarCursor.setMonth(calendarCursor.getMonth()+1);renderCalendar();});
+    $("#todayMonth").addEventListener("click",()=>{calendarCursor=new Date(today.getFullYear(),today.getMonth(),1);selectedCalendarDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());renderCalendar();});
+    renderCalendar();
+  }
+  function renderNotes(){
+    if(!$("#notesGrid"))return;
+    const term=$("#noteSearch").value.trim().toLowerCase(),box=$("#notesGrid");box.replaceChildren();
+    const shown=notes.filter(n=>(n.title+" "+n.body).toLowerCase().includes(term));
+    $("#notesCount").textContent=`${notes.length} notes`;
+    if(!shown.length){const e=document.createElement("div");e.className="empty-state";e.textContent=notes.length?"No notes match your search.":"Your notebook is empty. Create your first note.";box.append(e);}
+    shown.forEach(note=>{
+      const card=document.createElement("article");card.className="note-card";
+      const h=document.createElement("h2");h.textContent=note.title;
+      const p=document.createElement("p");p.textContent=note.body;
+      const foot=document.createElement("div");foot.className="note-card-foot";
+      const date=document.createElement("small");date.textContent=new Date(note.updatedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+      const edit=document.createElement("button");edit.className="text-btn";edit.textContent="Edit";edit.type="button";edit.addEventListener("click",()=>{ $("#noteTitle").value=note.title;$("#noteBody").value=note.body;$("#noteTitle").focus();notes=notes.filter(n=>n.id!==note.id);saveNotes();renderNotes();});
+      const del=document.createElement("button");del.className="text-btn";del.textContent="Delete";del.type="button";del.addEventListener("click",()=>{notes=notes.filter(n=>n.id!==note.id);saveNotes();renderNotes();toast("Note deleted.");});
+      foot.append(date,edit,del);card.append(h,p,foot);box.append(card);
+    });
+  }
+  if($("#noteForm")){
+    $("#noteForm").addEventListener("submit",e=>{e.preventDefault();const title=$("#noteTitle").value.trim(),body=$("#noteBody").value.trim();if(!title)return;
+      notes.unshift({id:globalThis.crypto?.randomUUID?.()||String(Date.now()),title,body,updatedAt:Date.now()});saveNotes();$("#noteForm").reset();renderNotes();toast("Note saved.");});
+    $("#noteSearch").addEventListener("input",renderNotes);renderNotes();
+  }
+
 })();
